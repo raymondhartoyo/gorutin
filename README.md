@@ -6,7 +6,7 @@ https://pkg.go.dev/github.com/raymondhartoyo/gorutin
 
 ## Release Information
 
-### v0.1.0
+### v0.1.1
 This is still an unstable release, public APIs (function signatures might be updated at the future release).
 
 ## Future milestones
