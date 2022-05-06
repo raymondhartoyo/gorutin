@@ -15,12 +15,12 @@ func Execute[TypeIn any, TypeOut any](numOfRoutines int, inputs []TypeIn, proces
 	// spawn workers
 	for i := 0; i < numOfRoutines; i++ {
 		wg.Add(1)
-		go func(inputChan chan TypeIn, outputChan chan TypeOut) {
+		go func() {
 			defer wg.Done()
-			for input := range inputChan {
-				outputChan <- process(input)
+			for input := range inputChannel {
+				outputChannel <- process(input)
 			}
-		}(inputChannel, outputChannel)
+		}()
 	}
 	go func() {
 		wg.Wait()
@@ -28,12 +28,12 @@ func Execute[TypeIn any, TypeOut any](numOfRoutines int, inputs []TypeIn, proces
 	}()
 
 	// distribute inputs
-	go func(inputs []TypeIn, inputChannels chan TypeIn) {
+	go func() {
 		for _, input := range inputs {
 			inputChannel <- input
 		}
 		close(inputChannel)
-	}(inputs, inputChannel)
+	}()
 
 	// wait for outputs
 	outputs := []TypeOut{}
