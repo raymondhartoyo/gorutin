@@ -1,5 +1,7 @@
 package concurrent
 
+import "sync"
+
 // Execute will process all inputs concurrently by calling the function passed in the arguments.
 // The number of goroutines that are used in the concurrent execution could be specified in the numOfRoutines parameter.
 // The execution follows fan-out and then fan-in pattern, in which multiple processes are run concurrently, then each
@@ -8,15 +10,22 @@ package concurrent
 func Execute[TypeIn any, TypeOut any](numOfRoutines int, inputs []TypeIn, process func(input TypeIn) TypeOut) []TypeOut {
 	inputChannel := make(chan TypeIn)
 	outputChannel := make(chan TypeOut)
+	var wg sync.WaitGroup
 
 	// spawn workers
 	for i := 0; i < numOfRoutines; i++ {
+		wg.Add(1)
 		go func(inputChan chan TypeIn, outputChan chan TypeOut) {
+			defer wg.Done()
 			for input := range inputChan {
 				outputChan <- process(input)
 			}
 		}(inputChannel, outputChannel)
 	}
+	go func() {
+		wg.Wait()
+		close(outputChannel)
+	}()
 
 	// distribute inputs
 	go func(inputs []TypeIn, inputChannels chan TypeIn) {
@@ -28,14 +37,8 @@ func Execute[TypeIn any, TypeOut any](numOfRoutines int, inputs []TypeIn, proces
 
 	// wait for outputs
 	outputs := []TypeOut{}
-	doneCount := 0
-	for {
-		outputs = append(outputs, <-outputChannel)
-		doneCount++
-		if doneCount >= len(inputs) {
-			close(outputChannel)
-			break
-		}
+	for output := range outputChannel {
+		outputs = append(outputs, output)
 	}
 	return outputs
 }
